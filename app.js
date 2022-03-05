@@ -1,6 +1,6 @@
 //main entry file of backend server
-const fs = require('fs');                   //NodeJS file system module
-const path = require('path');               //NodeJS path module
+//const fs = require('fs');                   //NodeJS file system module
+//const path = require('path');               //NodeJS path module
 const express = require('express');     //express
 const mongoose = require('mongoose');   //mongoose
 
@@ -8,6 +8,8 @@ const placesRoutes = require('./routes/places-routes'); //routes for places
 const usersRoutes = require('./routes/users-routes');   //routes for users
 
 const HttpError = require('./models/http-error');       //HttpError model
+
+const fileDelete = require('./util/file-delete');       //aws file delete
 
 //create app object by executing express
 const app = express();
@@ -27,7 +29,7 @@ app.use((req, res, next) => {
 
 //middleware to handle requests to /uploads/images
 //serve static from uploads/images path
-app.use('/uploads/images', express.static(path.join('uploads', 'images')));
+//app.use('/uploads/images', express.static(path.join('uploads', 'images')));
 
 //middleware function to handle requests to /api/places/...
 app.use('/api/places', placesRoutes);
@@ -44,10 +46,11 @@ app.use((req, res, next) => {
 app.use((error, req, res, next) => {
     //if we have a file in the request
     if(req.file){
+        fileDelete(req.file.location);
         //delete file
-        fs.unlink(req.file.path, (err) => {
+        /*fs.unlink(req.file.path, (err) => {
             console.log(err);
-        });
+        });*/
     }
     //if response was already sent
     if(res.headerSent){

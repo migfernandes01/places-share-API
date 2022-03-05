@@ -1,5 +1,5 @@
 //controller for places
-const fs = require('fs');                                   //File system from NodeJS
+//const fs = require('fs');                                   //File system from NodeJS
 
 const { validationResult } = require('express-validator');  //express-validator
 
@@ -8,6 +8,8 @@ const Place = require('../models/place');                   //place model
 const User = require('../models/user');                     //user model
 
 const getCoordsForAddress = require('../util/location');    //function to get coordinates from address
+const fileDelete = require('../util/file-delete');          //aws file delete
+
 const { default: mongoose } = require('mongoose');
 
 //function that gets place by it's ID
@@ -91,7 +93,7 @@ const createPlace = async (req, res, next) => {
         description: description,
         address: address,
         location: coordinates,
-        image: req.file.path,           //file.path from request
+        image: req.file.location,           //file on aws
         creator: req.userData.userId,   //userData.userId from request
     });
 
@@ -215,7 +217,7 @@ const deletePlace = async (req, res, next) => {
     }
 
     //get image path from place
-    const imagePath = place.image;
+    //const imagePath = place.image;
 
     //try to remove place from DB and from places array in the user
     try {
@@ -240,9 +242,12 @@ const deletePlace = async (req, res, next) => {
     }
 
     //delete image from file system, catch error if needed
-    fs.unlink(imagePath, err => {
+    /*fs.unlink(imagePath, err => {
         console.log(err);
-    });
+    });*/
+
+    const imagePath = place.image;
+    fileDelete(imagePath);
 
     //send new response with code 200 and message
     res.status(200).json({message: 'Deleted place.'});

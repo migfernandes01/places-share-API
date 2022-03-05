@@ -1,6 +1,16 @@
 //custom middleware
-const multer = require('multer');           //multer
-const { v4: uuidv4 } = require('uuid');     //uuid
+const aws = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+
+//config aws
+aws.config.update({
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    region: process.env.AWS_REGION
+});
+
+const s3 = new aws.S3();
 
 //helper constant with mimetypes and their ext
 const MIME_TYPE_MAP = {
@@ -12,25 +22,24 @@ const MIME_TYPE_MAP = {
 //configure multer and get fileUpload middleware
 const fileUpload = multer({
     limits: 500000,     //limit of 500kB
-    storage: multer.diskStorage({   //storage that takes some configs
-        destination: (req, file, callback) => {     //set img destination in disk storage
-            //set destination path with callback function
-            callback(null, 'uploads/images');
-        },            
-        filename: (req, file, callback) => {        //set filename
-            //set extension with help of a constant
-            const ext = MIME_TYPE_MAP[file.mimetype];
-            //set filename using callback function
-            callback(null, uuidv4() + '.' + ext);
+    storage: multerS3({     //storage with multer-S3
+        s3: s3,
+        bucket: process.env.AWS_BUCKET_NAME,
+        acl: 'public-read',
+        metadata: function (req, file, cb) {
+            cb(null, {fieldName: file.fieldname});
         },
-        fileFilter: (req, file, callback) => {
-            //check if mimetype is valid(!! to convert to true/false)
-            const isValid = !!MIME_TYPE_MAP[file.mimetype];
-            let error = isValid ? null : new Error('Invalid file type.');
-            //use callback function with the error and isValid to accept/deny file
-            callback(error, isValid);
+        key: function (req, file, cb) {
+            cb(null, Date.now().toString())
         }
-    })
+    }),
+    fileFilter: (req, file, callback) => {
+        //check if mimetype is valid(!! to convert to true/false)
+        const isValid = !!MIME_TYPE_MAP[file.mimetype];
+        let error = isValid ? null : new Error('Invalid file type.');
+        //use callback function with the error and isValid to accept/deny file
+        callback(error, isValid);
+    }
 });
 
 //export middleware
